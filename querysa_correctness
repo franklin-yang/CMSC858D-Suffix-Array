@@ -1,0 +1,24 @@
+# head -n 2 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1
+# head -n 11 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10
+# head -n 101 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100
+# head -n 1001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1000
+# head -n 10001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10000
+# head -n 100001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100000
+# head -n 1000001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1000000
+# head -n 10000001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10000000
+# head -n 100000001 Homo_sapiens.GRCh38.dna.chromosome.13.fa > samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100000000
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1 samples/1.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10 samples/10.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100 samples/100.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1000 samples/1000.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10000 samples/10000.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100000 samples/100000.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa1000000 samples/1000000.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa10000000 samples/10000000.idx
+# ./buildsa samples/Homo_sapiens.GRCh38.dna.chromosome.13.fa100000000 samples/100000000.idx
+
+# for numlines in 1 10 100 1000 10000 100000 1000000 10000000 100000000
+make buildsa
+make querysa
+./buildsa ecoli.fa ecoli.index
+./querysa ecoli.index query.fa simpaccel ecoliSimpAccelOut
