@@ -20,16 +20,396 @@ using namespace std;
 using namespace std::chrono;
 using timer = std::chrono::high_resolution_clock;
 
-int lcp(string s1, string s2)
+int lcp(string &s1, int offset, string &s2)
 {
     int i = 0;
-    for (i = 0; i < min(s1.length(),s2.length()); i++) {
-        if (s1.at(i) != s2.at(i)) {
+    for (i = 0; i < min(s1.length()-offset, s2.length()); i++)
+    {
+        if (s1.at(i+offset) != s2.at(i))
+        {
             break;
         }
     }
     return i;
 }
+
+pair<unordered_map<string, pair<int, int>>, double> naive(unordered_map<string, string> queries, csa_wt<> csa, string ref)
+{
+    unordered_map<string, pair<int, int>> matches;
+    auto start = std::chrono::steady_clock::now();
+    for (auto const &pair : queries)
+    {
+        int least_idx;
+        string p = pair.second;
+        string name = pair.first;
+        matches[name] = {-1, -2};
+
+        int left_idx = 0;
+        int right_idx = csa.size();
+        int mid = (left_idx + right_idx) / 2;
+        string sac;
+        bool found = false;
+        int cmp;
+        while (right_idx >= left_idx)
+        {
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+            }
+            else if (cmp == 0)
+            {
+                if (mid == 0 || p.compare(ref.substr(csa[mid - 1], p.length())) > 0)
+                {
+                    least_idx = mid;
+                    found = true;
+                    break;
+                }
+                right_idx = mid - 1;
+            }
+            // cout << mid << endl;
+            // sac = ref.substr(mid);
+        }
+
+        int most_idx;
+        left_idx = least_idx;
+        right_idx = csa.size() - 1;
+        mid = (left_idx + right_idx) / 2;
+        while (right_idx >= left_idx)
+        {
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+            }
+            else if (cmp == 0)
+            {
+                if (mid == csa.size() - 1 || p.compare(ref.substr(csa[mid + 1], p.length())) < 0)
+                {
+                    most_idx = mid;
+                    break;
+                }
+                left_idx = mid + 1;
+            }
+        }
+        if (found)
+        {
+            matches[name] = {least_idx, most_idx};
+        }
+    }
+    auto end = std::chrono::steady_clock::now();
+    return {matches, std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()};
+}
+
+pair<unordered_map<string, pair<int, int>>, double> naivepreft(unordered_map<string, string> queries, csa_wt<> csa, string ref, unordered_map<string, pair<int, int>> preft, int k)
+{
+    string p;
+    string name;
+    string pref;
+    unordered_map<string, pair<int, int>> matches;
+    auto start = std::chrono::steady_clock::now();
+    for (auto const &pair : queries)
+    {
+        int least_idx;
+        p = pair.second;
+        name = pair.first;
+        pref = p.substr(0, k);
+        matches[name] = {-1, -2};
+
+        int left_idx = preft[pref].first;
+        int right_idx = preft[pref].second;
+        int mid = (left_idx + right_idx) / 2;
+        string sac;
+        bool found = false;
+        int cmp;
+        while (right_idx >= left_idx)
+        {
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+            }
+            else if (cmp == 0)
+            {
+                if (mid == 0 || p.compare(ref.substr(csa[mid - 1], p.length())) > 0)
+                {
+                    least_idx = mid;
+                    found = true;
+                    break;
+                }
+                right_idx = mid - 1;
+            }
+            // cout << mid << endl;
+            // sac = ref.substr(mid);
+        }
+
+        int most_idx;
+        left_idx = least_idx;
+        right_idx = csa.size() - 1;
+        mid = (left_idx + right_idx) / 2;
+        while (right_idx >= left_idx)
+        {
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+            }
+            else if (cmp == 0)
+            {
+                if (mid == csa.size() - 1 || p.compare(ref.substr(csa[mid + 1], p.length())) < 0)
+                {
+                    most_idx = mid;
+                    break;
+                }
+                left_idx = mid + 1;
+            }
+        }
+        if (found)
+        {
+            matches[name] = {least_idx, most_idx};
+        }
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    return {matches, std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()};
+}
+
+pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<string, string> queries, csa_wt<> csa, string ref)
+{
+    unordered_map<string, pair<int, int>> matches;
+    int least_idx,most_idx,left_idx,right_idx,mid,llcp,mlcp,rlcp,cmp;
+    bool found;
+    string sac,p,name;
+    auto start = std::chrono::steady_clock::now();
+    // cout << "ref: " << ref.length() << endl;
+    for (auto const &pair : queries)
+    {
+        p = pair.second;
+        // cout << "searching for " << p << endl;
+        name = pair.first;
+        matches[name] = {-1, -2};
+
+        left_idx = 0;
+        right_idx = csa.size();
+        mid = (left_idx + right_idx) / 2;
+        llcp = lcp(ref,csa[left_idx],p);
+        rlcp = lcp(ref,csa[right_idx],p);
+        mlcp = min(llcp,rlcp);
+        found = false;
+        cmp;
+        while (right_idx >= left_idx)
+        {      
+            
+            // llcp = lcp(ref,csa[left_idx],p);
+            // rlcp = lcp(ref,csa[right_idx],p);
+            mlcp = min(llcp,rlcp);
+            // cout << mlcp << endl;
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid]+mlcp, p.length()-mlcp);
+            cmp = (p.substr(mlcp)).compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+                rlcp = lcp(ref,csa[right_idx],p);
+                // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
+                // lcp(ref,csa[right_idx],p);
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+                llcp = lcp(ref,csa[left_idx],p);
+                // llcp = lcp(ref.substr(csa[left_idx],p.length()),p);
+            }
+            else if (cmp == 0)
+            {
+                if (mid == 0 || p.compare(ref.substr(csa[mid - 1], p.length())) > 0)
+                {
+                    least_idx = mid;
+                    found = true;
+                    break;
+                }
+                right_idx = mid - 1;
+                rlcp = lcp(ref,csa[right_idx],p);
+                // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
+            }
+            // cout << mid << endl;
+            // sac = ref.substr(mid);
+        }
+
+        int most_idx;
+        left_idx = least_idx;
+        right_idx = csa.size() - 1;
+        llcp = lcp(ref,csa[left_idx],p);
+        rlcp = lcp(ref,csa[right_idx],p);
+        mlcp = min(llcp,rlcp);
+        mid = (left_idx + right_idx) / 2;
+        while (right_idx >= left_idx)
+        {   
+            
+            mlcp = min(llcp,rlcp);
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+                rlcp = lcp(ref,csa[right_idx],p);
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+                llcp = lcp(ref,csa[left_idx],p);
+            }
+            else if (cmp == 0)
+            {
+                if (mid == csa.size() - 1 || p.compare(ref.substr(csa[mid + 1], p.length())) < 0)
+                {
+                    most_idx = mid;
+                    break;
+                }
+                left_idx = mid + 1;
+                llcp = lcp(ref,csa[left_idx],p);
+            }
+        }
+        if (found)
+        {
+            matches[name] = {least_idx, most_idx};
+        }
+        // return{matches,0};
+    }
+    auto end = std::chrono::steady_clock::now();
+    return {matches, std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()};
+}
+
+pair<unordered_map<string, pair<int, int>>, double> simpaccelpreft(unordered_map<string, string> queries, csa_wt<> csa, string ref, unordered_map<string, pair<int, int>> preft, int k)
+{
+    unordered_map<string, pair<int, int>> matches;
+    int least_idx,most_idx,left_idx,right_idx,mid,llcp,mlcp,rlcp,cmp;
+    bool found;
+    string sac,p,name,pref;
+    auto start = std::chrono::steady_clock::now();
+    // cout << "ref: " << ref.length() << endl;
+    for (auto const &pair : queries)
+    {
+        p = pair.second;
+        // cout << "searching for " << p << endl;
+        name = pair.first;
+        matches[name] = {-1, -2};
+        
+        pref = p.substr(0, k);
+
+        left_idx = preft[pref].first;
+        right_idx = preft[pref].second;
+
+        // left_idx = 0;
+        // right_idx = csa.size();
+        mid = (left_idx + right_idx) / 2;
+         
+        // cout << "li" << left_idx << "sidx" << csa[left_idx] << "str" << ref.substr(csa[left_idx]) << endl;
+        // cout << "ri:" << right_idx << "sidx" << csa[right_idx] << "str"<< ref.substr(csa[right_idx]) << endl;
+        llcp = lcp(ref,csa[left_idx],p);
+        rlcp = lcp(ref,csa[right_idx],p);
+        //  rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
+         mlcp = min(llcp,rlcp);
+        // string sac;
+         found = false;
+         cmp;
+        while (right_idx >= left_idx)
+        {      
+            
+            llcp = lcp(ref,csa[left_idx],p);
+            rlcp = lcp(ref,csa[right_idx],p);
+            mlcp = min(llcp,rlcp);
+            // cout << mlcp << endl;
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid]+mlcp, p.length()-mlcp);
+            cmp = (p.substr(mlcp)).compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+                // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+                // llcp = lcp(ref.substr(csa[left_idx],p.length()),p);
+            }
+            else if (cmp == 0)
+            {
+                if (mid == 0 || p.compare(ref.substr(csa[mid - 1], p.length())) > 0)
+                {
+                    least_idx = mid;
+                    found = true;
+                    break;
+                }
+                right_idx = mid - 1;
+                // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
+            }
+            // cout << mid << endl;
+            // sac = ref.substr(mid);
+        }
+
+        int most_idx;
+        left_idx = least_idx;
+        right_idx = csa.size() - 1;
+        mid = (left_idx + right_idx) / 2;
+        while (right_idx >= left_idx)
+        {
+            mid = (left_idx + right_idx) / 2;
+            sac = ref.substr(csa[mid], p.length());
+            cmp = p.compare(sac);
+            if (cmp < 0)
+            {
+                right_idx = mid - 1;
+            }
+            else if (cmp > 0)
+            {
+                left_idx = mid + 1;
+            }
+            else if (cmp == 0)
+            {
+                if (mid == csa.size() - 1 || p.compare(ref.substr(csa[mid + 1], p.length())) < 0)
+                {
+                    most_idx = mid;
+                    break;
+                }
+                left_idx = mid + 1;
+            }
+        }
+        if (found)
+        {
+            matches[name] = {least_idx, most_idx};
+        }
+        // return{matches,0};
+    }
+    auto end = std::chrono::steady_clock::now();
+    return {matches, std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()};
+}
+
 int main(int argc, char **argv)
 {
     string idx_fname = argv[1];
@@ -39,10 +419,18 @@ int main(int argc, char **argv)
     string ref;
     oarchive(preft);
     oarchive(ref);
-    
+
     csa_wt<> csa;
     csa.load(ifile);
 
+    int k =0;
+    if (preft.size() > 0)
+    {
+        k = preft.begin()->first.length();
+    }
+    // auto it = preft.begin();
+    // string samp_key = it->first;
+    // int k = samp_key.length();
     // for (int i = 0; i < csa.size(); i++)
     // {
     //     cout << i << " " << ref.substr(csa[i]) << endl;
@@ -51,24 +439,27 @@ int main(int argc, char **argv)
     string q_fname = argv[2];
     cout << q_fname << endl;
     std::ifstream file(q_fname);
-    
-    unordered_map<string,string> queries = unordered_map<string,string>();
-    unordered_map<string,pair<int,int>> matches = unordered_map<string,pair<int,int>>();
+    string mode = argv[3];
+
+    unordered_map<string, string> queries = unordered_map<string, string>();
     string prev_name;
     if (file.is_open())
     {
-    // cout << q_fname << endl;
+        // cout << q_fname << endl;
         std::string line;
         while (std::getline(file, line))
         {
             // using printf() in all tests for consistency
-            if (line.at(0) == '>' ) {
+            if (line.at(0) == '>')
+            {
                 // refname
                 prev_name = line.substr(1);
                 // cout << qname << endl;
-                // prev_name = 
+                // prev_name =
                 queries[line.substr(1)] = "";
-            } else {
+            }
+            else
+            {
                 queries[prev_name].append(line);
             }
         }
@@ -78,85 +469,54 @@ int main(int argc, char **argv)
     {
         cout << 34 << endl;
     }
-
-
-    for (auto const &pair : queries)
+    // unordered_map<string,pair<int,int>> matches = naive(queries,csa,ref);
+pair<unordered_map<string, pair<int, int>>, double> res;
+    if (mode.compare("naive") == 0)
     {
-        int least_idx;
-        string p = pair.second;
-        string name = pair.first;
-        matches[name] = {-1,-2};
-
-        int left_idx = 0;
-        int right_idx = csa.size();
-        int mid = (left_idx + right_idx) / 2;
-        string sac;
-        bool found = false;
-        int cmp;
-        while (right_idx >= left_idx) {
-            mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid],p.length());
-            cmp = p.compare(sac);
-            if (cmp < 0) {
-                right_idx = mid - 1;
-            } else if (cmp > 0) {
-                left_idx = mid + 1;
-            } else if (cmp == 0) {
-                if (mid == 0 || p.compare(ref.substr(csa[mid - 1],p.length())) > 0) {
-                    least_idx = mid;
-                    found = true;
-                    break;
-                }
-                right_idx = mid - 1;
-            }
-            cout << mid << endl;
-            // sac = ref.substr(mid);
+        if (preft.size() > 0)
+        {
+            cout << "naive preft" << endl;
+            res = naivepreft(queries, csa, ref, preft, k);
         }
-
-        int most_idx;
-         left_idx = least_idx;
-         right_idx = csa.size() - 1;
-         mid = (left_idx + right_idx) / 2;
-        while (right_idx >= left_idx) {
-            mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid],p.length());
-            cmp = p.compare(sac);
-            if (cmp < 0) {
-                right_idx = mid - 1;
-            } else if (cmp > 0) {
-                left_idx = mid + 1;
-            } else if (cmp == 0) {
-                if (mid == csa.size()-1 || p.compare(ref.substr(csa[mid + 1],p.length())) < 0) {
-                    most_idx = mid;
-                    break;
-                }
-                left_idx = mid + 1;
-            }
+        else
+        {
+            
+            cout << "naive no preft" << endl;
+            res = naive(queries, csa, ref);
         }
-        if (found) {
-            matches[name] = {least_idx,most_idx};
+    }
+    else
+    {
+        if (preft.size() > 0)
+        {
+            cout << "simpaccel preft" << endl;
+            // res = naivepreft(queries, csa, ref, preft, k);
         }
-        std::cout << "{" << pair.first << ": " << pair.second << "}\n" << least_idx << " " << most_idx;
-        // return 0;
-        // break;
+        else
+        {
+            
+            cout << "simpaccel no preft" << endl;
+            res = simpaccel(queries, csa, ref);
+        }
     }
 
     string out_fname = argv[4];
-    cout << out_fname;
+    cout << out_fname << endl;
+    cout << res.second << endl;
     ofstream ofile(out_fname);
     int nm;
-    for (auto const &pair : matches)
+    for (auto const &pair : res.first)
     {
         ofile << pair.first << "\t";
         nm = pair.second.second - pair.second.first + 1;
-        ofile << nm ;
-        for (int j = pair.second.first; j <= pair.second.second; j++) {
+        ofile << nm;
+        for (int j = pair.second.first; j <= pair.second.second; j++)
+        {
             ofile << "\t" << csa[j];
         }
         ofile << endl;
-        std::cout << "{" << pair.first << ": " << pair.second.first << " " << pair.second.second << "}\n";
+        // std::cout << "{" << pair.first << ": " << pair.second.first << " " << pair.second.second << "}\n";
     }
-
 
     // std::string name = "13 dna:chromosome chromosome:GRCh38:13:1:114364328:1 REF";
 }

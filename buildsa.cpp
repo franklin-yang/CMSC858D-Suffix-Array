@@ -10,7 +10,6 @@
 #include <sdsl/lcp.hpp>
 #include <sdsl/suffix_arrays.hpp>
 #include <stdio.h>
-#include "SA.hpp"
 
 // buildsa: Input
 // The input consists of one optional parameter, as well as 2 required arguments, given in this order:
@@ -27,113 +26,16 @@ using namespace std;
 using namespace std::chrono;
 using timer = std::chrono::high_resolution_clock;
 
-void build_sa(string ref_fname, string out_fname)
-{
-    std::ifstream file(ref_fname);
-    bool first = true;
-    string ref;
-    if (file.is_open())
-    {
-        std::string line;
-        while (std::getline(file, line))
-        {
-            // using printf() in all tests for consistency
-            if (!first)
-            {
-                ref = ref + line;
-            }
-            first = false;
-        }
-        file.close();
-    }
-    else
-    {
-        cout << 34 << endl;
-    }
-
-    string tname = "tmp";
-    std::ofstream tfile(tname);
-    tfile << ref.c_str();
-    tfile.close();
-    printf("%s", ref.c_str());
-    SA sufa;
-
-    cache_config cc(false); // do not delete temp files after csa construction
-    csa_wt<> csa;
-    construct(csa, tname, 1);
-
-    cc.delete_files = true; // delete temp files after lcp construction
-    lcp_wt<> lcp;
-    construct(lcp, tname, 1);
-    // cout << ref.length();
-    // sufa.ref = ref;
-    int k = 2;
-    unordered_map<string, pair<int, int>> preft = unordered_map<string, pair<int, int>>();
-    string prev = ref.substr(csa[1], k);
-    preft[prev].first = 1;
-    string curr;
-    for (int i = 2; i < csa.size(); i++)
-    {
-        curr = ref.substr(csa[i], k);
-        if (prev.compare(curr) != 0)
-        {
-            preft[prev].second = i - 1;
-            preft[curr] = {i, i};
-        }
-        prev = curr;
-        // cout << i << " " << ref.substr(csa[i]) << endl;
-    }
-
-    // for (auto const &pair : preft)
-    // {
-    //     std::cout << "{" << pair.first << ": " << pair.second.first << " " << pair.second.second << "}\n";
-    // }
-    // if (csa.size() < 1000)
-    // {
-    //     cout << csa << endl;
-    //     cout << "-------" << endl;
-    //     cout << lcp << endl;
-    // }
-    // }
-
-    std::ofstream ofile(out_fname);
-    cereal::BinaryOutputArchive oarchive(ofile); // Create an output archive
-
-    // oarchive(sufa);
-    // sa.serialize(ofile);
-    // ofile.close();
-    oarchive(preft);
-    csa.serialize(ofile);
-    lcp.serialize(ofile);
-}
-
 int main(int argc, char **argv)
 {
     int refIdx = 1;
     int outputIdx = 2;
-
-    if (argc == 4)
+    // cout << argc << endl;
+    if (strcmp(argv[1],"--preftab") == 0)
     {
         refIdx += 2;
         outputIdx += 2;
     }
-
-    // std::string line;
-    // std::ifstream myfile (argv[refIdx]);
-    // bool first = true;
-    // if (myfile.is_open())
-    // {
-    //     while ( getline (myfile,line) )
-    //     {
-    //     // std::cout << line << '\n';
-    //     first = false;
-    //     if (!first) {
-
-    //     }
-    //     }
-    //     myfile.close();
-    // }
-    build_sa(argv[refIdx], argv[refIdx + 1]);
 
     string ref_fname = argv[refIdx];
     string out_fname = argv[refIdx + 1];
@@ -156,54 +58,45 @@ int main(int argc, char **argv)
     }
     else
     {
-        cout << 34 << endl;
+        cout << "error" << endl;
     }
 
     string tname = "tmp";
     std::ofstream tfile(tname);
     tfile << ref.c_str();
     tfile.close();
-    printf("%s", ref.c_str());
-    SA sufa;
+    // printf("%s", ref.c_str());
 
     cache_config cc(false); // do not delete temp files after csa construction
     csa_wt<> csa;
+    
+    auto start = std::chrono::steady_clock::now();
     construct(csa, tname, 1);
 
-    cc.delete_files = true; // delete temp files after lcp construction
-    lcp_wt<> lcp;
-    construct(lcp, tname, 1);
-    // cout << ref.length();
-    // sufa.ref = ref;
-    int k = 2;
+    auto end = std::chrono::steady_clock::now();
+    cout << "csa const time for " << ref_fname << " " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
     unordered_map<string, pair<int, int>> preft = unordered_map<string, pair<int, int>>();
-    string prev = ref.substr(csa[1], k);
-    preft[prev].first = 1;
-    string curr;
-    for (int i = 2; i < csa.size(); i++)
-    {
-        curr = ref.substr(csa[i], k);
-        if (prev.compare(curr) != 0)
+    if (strcmp(argv[1],"--preftab") == 0) {
+        int k = stoi(argv[2]);
+        string prev = ref.substr(csa[1], k);
+        cout << "building preftab with k=" <<k<< endl;
+        start = std::chrono::steady_clock::now();
+        preft[prev].first = 1;
+        string curr;
+        for (int i = 2; i < csa.size(); i++)
         {
-            preft[prev].second = i - 1;
-            preft[curr] = {i, i};
+            curr = ref.substr(csa[i], k);
+            if (prev.compare(curr) != 0)
+            {
+                preft[prev].second = i - 1;
+                preft[curr] = {i, i};
+            }
+            prev = curr;
+            // cout << i << " " << ref.substr(csa[i]) << endl;
         }
-        prev = curr;
-        // cout << i << " " << ref.substr(csa[i]) << endl;
+        end = std::chrono::steady_clock::now();
+        cout << "preftabe const time for " << ref_fname << " " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
     }
-
-    // for (auto const &pair : preft)
-    // {
-    //     std::cout << "{" << pair.first << ": " << pair.second.first << " " << pair.second.second << "}\n";
-    // }
-    if (csa.size() < 1000)
-    {
-        // cout << csa << endl;
-        // cout << "-------" << endl;
-        // cout << lcp << endl;
-    }
-    // }
-
     std::ofstream ofile(out_fname);
     cereal::BinaryOutputArchive oarchive(ofile); // Create an output archive
 
