@@ -33,6 +33,31 @@ int lcp(string &s1, int offset, string &s2)
     return i;
 }
 
+int subcmp(string &s1, int offset, string &s2, int offset2)
+{
+    int i=0;
+    for ( i; i < min(s1.length()-offset, s2.length()-offset2); i++)
+    {
+        if (s1.at(i+offset) != s2.at(i+offset2))
+        {
+            return s2.at(i+offset2) -  s1.at(i+offset);
+        }
+    }
+    // cout << "i: " << i << "offset" << offset2 << "s2l" << s2.length() << endl;
+    if ( (i+offset2) == s2.length()){
+        return 0;
+    }
+   if (s1.length()-offset < s2.length()-offset2)
+   {
+       return 1;
+   }
+   else
+   {
+       return -1;
+   }
+   return 0;
+}
+
 pair<unordered_map<string, pair<int, int>>, double> naive(unordered_map<string, string> queries, csa_wt<> csa, string ref)
 {
     unordered_map<string, pair<int, int>> matches;
@@ -215,12 +240,10 @@ pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<stri
 
         left_idx = 0;
         right_idx = csa.size();
-        mid = (left_idx + right_idx) / 2;
+        // mid = (left_idx + right_idx) / 2;
         llcp = lcp(ref,csa[left_idx],p);
         rlcp = lcp(ref,csa[right_idx],p);
-        mlcp = min(llcp,rlcp);
         found = false;
-        cmp;
         while (right_idx >= left_idx)
         {      
             
@@ -229,8 +252,12 @@ pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<stri
             mlcp = min(llcp,rlcp);
             // cout << mlcp << endl;
             mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid]+mlcp, p.length()-mlcp);
-            cmp = (p.substr(mlcp)).compare(sac);
+            // sac = ref.substr(csa[mid]+mlcp, p.length()-mlcp);
+            // cmp = (p.substr(mlcp)).compare(sac);
+            // int neww = subcmp(ref,csa[mid]+mlcp,p,mlcp);
+            cmp = subcmp(ref,csa[mid]+mlcp,p,mlcp);
+            // if (cmp != neww)
+            //     cout << "og" << cmp << "new" << neww << "diff" << cmp-neww << "s1" << ref.substr(csa[mid]+mlcp,p.length()+2) << "s2" << p.substr(mlcp)<< endl;
             if (cmp < 0)
             {
                 right_idx = mid - 1;
