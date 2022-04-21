@@ -33,6 +33,20 @@ int lcp(string &s1, int offset, string &s2)
     return i;
 }
 
+
+int lcp2(string &s1, int offset, string &s2, int offset2)
+{
+    int i = 0;
+    for (i = 0; i < min(s1.length()-offset, s2.length()-offset2); i++)
+    {
+        if (s1.at(i+offset) != s2.at(i+offset2))
+        {
+            break;
+        }
+    }
+    return i;
+}
+
 int subcmp(string &s1, int offset, string &s2, int offset2)
 {
     int i=0;
@@ -40,7 +54,12 @@ int subcmp(string &s1, int offset, string &s2, int offset2)
     {
         if (s1.at(i+offset) != s2.at(i+offset2))
         {
-            return s2.at(i+offset2) -  s1.at(i+offset);
+            // return s2.at(i+offset2) -  s1.at(i+offset);
+            if ( s2.at(i+offset2) -  s1.at(i+offset) > 0) {
+                return i+1;
+            } else {
+                return -i-1;
+            }
         }
     }
     // cout << "i: " << i << "offset" << offset2 << "s2l" << s2.length() << endl;
@@ -50,10 +69,10 @@ int subcmp(string &s1, int offset, string &s2, int offset2)
    if (s1.length()-offset < s2.length()-offset2)
    {
        return 1;
-   }
-   else
-   {
+   } else if (s1.length()-offset > s2.length()-offset2) {
        return -1;
+   } else {
+       return 0;
    }
    return 0;
 }
@@ -78,8 +97,9 @@ pair<unordered_map<string, pair<int, int>>, double> naive(unordered_map<string, 
         while (right_idx >= left_idx)
         {
             mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid], p.length());
-            cmp = p.compare(sac);
+            // sac = ref.substr(csa[mid], p.length());
+            // cmp = p.compare(sac);
+            cmp = subcmp(ref, csa[mid], p,0);
             if (cmp < 0)
             {
                 right_idx = mid - 1;
@@ -109,8 +129,10 @@ pair<unordered_map<string, pair<int, int>>, double> naive(unordered_map<string, 
         while (right_idx >= left_idx)
         {
             mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid], p.length());
-            cmp = p.compare(sac);
+            // sac = ref.substr(csa[mid], p.length());
+            // cmp = p.compare(sac);
+            
+            cmp = subcmp(ref, csa[mid], p,0);
             if (cmp < 0)
             {
                 right_idx = mid - 1;
@@ -226,11 +248,12 @@ pair<unordered_map<string, pair<int, int>>, double> naivepreft(unordered_map<str
 pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<string, string> queries, csa_wt<> csa, string ref)
 {
     unordered_map<string, pair<int, int>> matches;
-    int least_idx,most_idx,left_idx,right_idx,mid,llcp,mlcp,rlcp,cmp;
+    int least_idx,most_idx,left_idx,right_idx,mid,llcp,mlcp,rlcp,cmp,tlcp;
     bool found;
     string sac,p,name;
     auto start = std::chrono::steady_clock::now();
     // cout << "ref: " << ref.length() << endl;
+    // int tlcp;
     for (auto const &pair : queries)
     {
         p = pair.second;
@@ -260,31 +283,71 @@ pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<stri
             //     cout << "og" << cmp << "new" << neww << "diff" << cmp-neww << "s1" << ref.substr(csa[mid]+mlcp,p.length()+2) << "s2" << p.substr(mlcp)<< endl;
             if (cmp < 0)
             {
-                right_idx = mid - 1;
-                rlcp = lcp(ref,csa[right_idx],p);
+//                 if (mid == left_idx+1) {
+//                     least_idx=mid;
+//                     if (p.compare(ref.substr(csa[mid], p.length())) == 0)
+// {                        found = true;
+// }                    break;
+//                 }
+                right_idx = mid -1;
+                // right_idx = mid - 1;
+                // tlcp = min(llcp,abs(cmp)-1);
+                // rlcp = lcp2(ref,csa[right_idx],p,0);
                 // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
-                // lcp(ref,csa[right_idx],p);
+                // rlcp = lcp(ref,csa[right_idx],p);
+                rlcp = abs(cmp) - 1;
+                // rlcp = abs(cmp)-1;
             }
             else if (cmp > 0)
             {
+                // if (mid == right_idx-1) {
+                //     least_idx=right_idx;
+                //     if (p.compare(ref.substr(csa[right_idx], p.length())) == 0){
+                //         found = true;}
+                //     break;
+                // }
+                
                 left_idx = mid + 1;
-                llcp = lcp(ref,csa[left_idx],p);
+                // left_idx = mid+1 ;
+                // llcp = abs(cmp)-1;
+                // tlcp = min(rlcp,abs(cmp)-1);
+                // llcp = lcp(ref,csa[left_idx],p);
+                llcp = abs(cmp) - 1;
+                
+                // llcp = lcp2(ref,csa[left_idx]+0,p,0);
                 // llcp = lcp(ref.substr(csa[left_idx],p.length()),p);
             }
             else if (cmp == 0)
             {
+                // cout << "here" << endl;
                 if (mid == 0 || p.compare(ref.substr(csa[mid - 1], p.length())) > 0)
                 {
                     least_idx = mid;
                     found = true;
                     break;
                 }
+                
+                // if (mid == right_idx-1) {
+                //     if (p.compare(ref.substr(csa[right_idx], p.length())) == 0)
+                //         found = true;
+                //     least_idx=right_idx;
+                //     break;
+                // }
                 right_idx = mid - 1;
-                rlcp = lcp(ref,csa[right_idx],p);
+                rlcp = p.length();
+                // right_idx = mid-1 ;
+                // rlcp = lcp(ref,csa[right_idx],p);
+                
+                // tlcp = min(llcp,abs(cmp)-1);
+                // rlcp = lcp2(ref,csa[right_idx]+0,p,0);
                 // rlcp = lcp(ref.substr(csa[right_idx],p.length()),p);
             }
-            // cout << mid << endl;
+            // cout << "li" << left_idx << "m" << mid << "ri" << right_idx << endl;
             // sac = ref.substr(mid);
+        }
+
+        if (!found) {
+            continue;
         }
 
         int most_idx;
@@ -292,19 +355,24 @@ pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<stri
         right_idx = csa.size() - 1;
         llcp = lcp(ref,csa[left_idx],p);
         rlcp = lcp(ref,csa[right_idx],p);
-        mlcp = min(llcp,rlcp);
+        // mlcp = min(llcp,rlcp);
         mid = (left_idx + right_idx) / 2;
         while (right_idx >= left_idx)
         {   
             
             mlcp = min(llcp,rlcp);
             mid = (left_idx + right_idx) / 2;
-            sac = ref.substr(csa[mid], p.length());
-            cmp = p.compare(sac);
+            // sac = ref.substr(csa[mid], p.length());
+            // cmp = p.compare(sac);
+            cmp = subcmp(ref,csa[mid]+mlcp,p,mlcp);
+
             if (cmp < 0)
             {
                 right_idx = mid - 1;
                 rlcp = lcp(ref,csa[right_idx],p);
+                
+                // tlcp = min(llcp,abs(cmp)-1);
+                // rlcp = lcp2(ref,csa[right_idx]+tlcp,p,tlcp);
             }
             else if (cmp > 0)
             {
@@ -327,6 +395,10 @@ pair<unordered_map<string, pair<int, int>>, double> simpaccel(unordered_map<stri
             matches[name] = {least_idx, most_idx};
         }
         // return{matches,0};
+        
+        if (most_idx < least_idx) {
+            cout << "most_idx: " << most_idx << "least_idx: " << least_idx << endl;
+        }
     }
     auto end = std::chrono::steady_clock::now();
     return {matches, std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()};
